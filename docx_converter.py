@@ -52,23 +52,55 @@ HEADING_MAP = {
     "Titre 3": "subsubsection",
 }
 
-LATEX_PREAMBLE = r"""\documentclass[a4paper,11pt]{article}
+def _get_page_geometry(doc: Document) -> dict:
+    """Récupère la taille de page et les marges réelles du document Word."""
+    section = doc.sections[0]
+    return {
+        "paperwidth": section.page_width.cm if section.page_width else 21.0,
+        "paperheight": section.page_height.cm if section.page_height else 29.7,
+        "top": section.top_margin.cm if section.top_margin else 2.5,
+        "bottom": section.bottom_margin.cm if section.bottom_margin else 2.5,
+        "left": section.left_margin.cm if section.left_margin else 2.5,
+        "right": section.right_margin.cm if section.right_margin else 2.5,
+    }
+
+
+def _get_body_font_size_pt(doc: Document) -> float:
+    """Récupère la taille de police du style 'Normal' du document Word (par défaut 11pt)."""
+    try:
+        size = doc.styles["Normal"].font.size
+        if size is not None:
+            return round(size.pt, 1)
+    except Exception:
+        pass
+    return 11.0
+
+
+def _build_preamble(doc: Document) -> str:
+    geo = _get_page_geometry(doc)
+    font_pt = _get_body_font_size_pt(doc)
+    leading_pt = round(font_pt * 1.2, 1)
+    # Classe de base la plus proche (10/11/12pt) — la taille exacte est
+    # ensuite appliquée par-dessus via \fontsize pour coller au point près
+    # à la taille du document Word d'origine.
+    base = min((10, 11, 12), key=lambda b: abs(b - font_pt))
+
+    return r"""\documentclass[a4paper,%dpt]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[french]{babel}
 \usepackage{graphicx}
 \usepackage{geometry}
 \usepackage{enumitem}
-\geometry{margin=2.5cm}
-
-\title{%s}
-\author{}
-\date{}
+\geometry{paperwidth=%.3fcm,paperheight=%.3fcm,top=%.3fcm,bottom=%.3fcm,left=%.3fcm,right=%.3fcm}
+\renewcommand{\normalsize}{\fontsize{%.1fpt}{%.1fpt}\selectfont}
+\normalsize
 
 \begin{document}
-\maketitle
 
-"""
+""" % (base, geo["paperwidth"], geo["paperheight"], geo["top"], geo["bottom"],
+       geo["left"], geo["right"], font_pt, leading_pt)
+
 
 LATEX_END = "\n\\end{document}\n"
 
@@ -145,7 +177,7 @@ def convert_docx_to_latex(input_path: str, output_dir: str, title: str = "",
 
     rel_to_path = _extract_images(doc, images_dir)
 
-    body_parts = [LATEX_PREAMBLE % escape_latex(title)]
+    body_parts = [_build_preamble(doc)]
 
     in_itemize = False
     in_enumerate = False
@@ -198,7 +230,9 @@ def convert_docx_to_latex(input_path: str, output_dir: str, title: str = "",
         if style_name in HEADING_MAP:
             close_lists()
             content = escape_latex(text_raw)
-            body_parts.append(f"\\{HEADING_MAP[style_name]}{{{content}}}\n")
+            # Étoile = titre NON numéroté (comme dans Word, qui ne numérote
+            # pas automatiquement les titres, contrairement à LaTeX par défaut)
+            body_parts.append(f"\\{HEADING_MAP[style_name]}*{{{content}}}\n")
             continue
 
         # Listes (détection par nom de style ; python-docx ne fiabilise pas
