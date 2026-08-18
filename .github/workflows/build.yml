@@ -1,0 +1,38 @@
+name: Build Windows exe
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Vérifier que l'application s'importe sans erreur
+        run: |
+          python -c "import docx_converter; import pdf_converter; import text_utils; print('OK')"
+
+      - name: Construire l'exécutable avec PyInstaller
+        run: |
+          pyinstaller --noconsole --onefile --name "ConvertisseurLatex" main.py
+
+      - name: Publier l'exécutable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ConvertisseurLatex-windows
+          path: dist/ConvertisseurLatex.exe
