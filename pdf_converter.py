@@ -24,6 +24,7 @@ LATEX_PREAMBLE = r"""\documentclass[a4paper,11pt]{article}
 \usepackage[french]{babel}
 \usepackage{graphicx}
 \usepackage{geometry}
+\usepackage{texcomp}
 \geometry{margin=2.5cm}
 
 \title{%s}
