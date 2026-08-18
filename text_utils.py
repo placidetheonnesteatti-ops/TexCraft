@@ -21,13 +21,37 @@ LATEX_SPECIAL_CHARS = {
     '\\': r'\textbackslash{}',
 }
 
+# Caractères Unicode "typographiques" que Word insère automatiquement
+# (tirets longs, guillemets courbes, signe moins, puces...) et que LaTeX
+# ne sait pas afficher tel quel avec l'encodage utf8/T1 de base — sans
+# cette table, la compilation plante purement et simplement ("Unicode
+# character not set up for use with LaTeX").
+UNICODE_REPLACEMENTS = {
+    '\u2212': r'\textminus{}',   # − signe moins typographique
+    '\u2013': r'--',             # – tiret demi-cadratin (en dash)
+    '\u2014': r'---',            # — tiret cadratin (em dash)
+    '\u2018': r'`',              # ' guillemet simple ouvrant
+    '\u2019': r"'",              # ' apostrophe/guillemet simple fermant
+    '\u201c': r'``',             # " guillemet double ouvrant
+    '\u201d': r"''",             # " guillemet double fermant
+    '\u00ab': r'\guillemotleft{}',   # «
+    '\u00bb': r'\guillemotright{}',  # »
+    '\u2026': r'\ldots{}',       # … points de suspension
+    '\u2022': r'\textbullet{}',  # • puce
+    '\u00a0': r'~',              # espace insécable
+    '\u202f': r'~',              # espace fine insécable
+    '\ufeff': '',                # BOM éventuel
+}
+
 
 def escape_latex(text: str) -> str:
-    """Échappe les caractères spéciaux LaTeX dans un texte brut."""
+    """Échappe les caractères spéciaux LaTeX et remplace les caractères
+    Unicode typographiques problématiques dans un texte brut."""
     if not text:
         return ""
-    pattern = re.compile('|'.join(re.escape(k) for k in LATEX_SPECIAL_CHARS))
-    return pattern.sub(lambda m: LATEX_SPECIAL_CHARS[m.group()], text)
+    combined = {**LATEX_SPECIAL_CHARS, **UNICODE_REPLACEMENTS}
+    pattern = re.compile('|'.join(re.escape(k) for k in combined))
+    return pattern.sub(lambda m: combined[m.group()], text)
 
 
 class SpellGrammarChecker:
