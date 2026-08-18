@@ -91,6 +91,7 @@ def _build_preamble(doc: Document) -> str:
 \usepackage[french]{babel}
 \usepackage{graphicx}
 \usepackage{geometry}
+\usepackage{textcomp}
 \usepackage{enumitem}
 \geometry{paperwidth=%.3fcm,paperheight=%.3fcm,top=%.3fcm,bottom=%.3fcm,left=%.3fcm,right=%.3fcm}
 \renewcommand{\normalsize}{\fontsize{%.1fpt}{%.1fpt}\selectfont}
